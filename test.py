@@ -2,6 +2,7 @@ import xml.etree.ElementTree as ET
 from hermetrics.hamming import Hamming
 from hermetrics.osa import Osa
 from tabulate import tabulate
+import time
 
 ################Variables##############
 archivo = 'test2.xml'
@@ -10,110 +11,17 @@ root = tree.getroot()
 URLS = []
 PARAM = []
 osa = Osa()
-url_config1 = {}
-url_config2 = {}
-url_config1_2 = {}
-url_config2_2 = {}
+url_config1 = {} ###############diccionarios con la configuracion############################
+url_config2 = {} ###############diccionarios con la configuracion############################
 
-
-def comparar_diccionarios(url_config1, url_config2):
-    keys = url_config1.keys() | url_config2.keys()
-    for key in keys:
-        if url_config1[key] != url_config2[key]:
-            val1=url_config1[key]
-            val2=url_config2[key]
-
-            print(key, ":", url_config1[key], "-----------", key, ":", url_config2[key])
-            return key, val1, val2
-
-def comparar_diccionarios2(url_config1_2, url_config2_2):
-    print("comparando")
-    keys = url_config1_2.keys() | url_config2_2.keys()
-    for key_2 in keys:
-        if url_config1_2[key_2] != url_config2_2[key_2]:
-            val1_2=url_config1_2[key_2]
-            val2_2=url_config2_2[key_2]
-            print()
-            return key_2, val1_2, val2_2
+url1_comparison={}
+url2_comparison={}
 
 def get_uris(URLS):
     for uri in root.findall("urls"):
         for child in uri:
             url=child.attrib.get("name")
             URLS.append(url)
-
-def get_params(PARAM):
-    for Parameters in root.findall("parameters"):
-        for child in Parameters:
-            parameter=child.attrib.get("name")
-            PARAM.append(parameter)
-
-def find_similarities_url(lista):
-    try:
-        for i in lista:
-            for x in range(len(lista)):
-                if lista.index(i) != x:
-                    similitud = osa.similarity(i, lista[x])
-                    if i.startswith(lista[x]) and similitud > 0.10:
-                        lista_similitud = []
-                        lista_rec = []
-                        lista_rec2 = []
-                        lista_rec2_2 = []
-                        lista_rec.append(i)
-                        lista_rec.append(lista[x])#####################################
-                        similitud = str(similitud * 100)
-                        similitud = f"Porcentaje de similitud: {similitud}"
-                        lista_rec.append(similitud)
-                        lista_similitud.append(lista_rec)
-                        url1 = i
-                        url2 = lista[x]
-                        #print(url1, "    ", url2)
-                        config_diff1(url1)
-                        config_diff2(url2)
-                        #comparar_diccionarios(url_config1, url_config2)
-                        key, val1, val2 = comparar_diccionarios(url_config1, url_config2)#########################
-                        diff1=key,":",val1
-                        diff2=key, ":", val2
-                        lista_rec2.append(diff1)
-                        lista_rec2.append(diff2)
-                        lista_similitud.append(lista_rec2)
-
-                        #key_2, val1_2, val2_2 = comparar_diccionarios(url_config1_2, url_config2_2)  ##################
-                        #diff1_2 = key_2, ":", val1_2
-                        #diff2_2 = key_2, ":", val2_2
-                        #lista_rec2_2.append(diff1_2)
-                        #lista_rec2_2.append(diff2_2)
-                        #lista_similitud.append(lista_rec2_2)
-                        print(lista_similitud)
-                        print(tabulate(lista_similitud, headers=["URL1", "URL2", "Porcentaje"], tablefmt='fancy_grid'))
-                        #comparar_diccionarios(url_config1, url_config2)
-
-        #print(lista)
-    except NameError as e:
-        print(e)
-
-def find_similarities_param():
-    try:
-        for i in lista2:
-            for x in range(len(lista2)):
-                if lista2.index(i) != x:
-                    if i.startswith(lista2[x]):
-                        similitud = osa.similarity(i, lista2[x])
-                        if similitud > 0.5:
-                            lista_similitud = []
-                            lista_rec = []
-                            lista_rec.append(i)
-                            lista_rec.append(lista2[x])
-                            #similitud = osa.similarity(i, lista2[x])
-                            similitud = str(similitud * 100)
-                            similitud = f"Porcentaje de similitud: {similitud}"
-                            lista_rec.append(similitud)
-                            lista_similitud.append(lista_rec)
-                            print(tabulate(lista_similitud, headers=["Param1", "Param2", "Porcentaje"], tablefmt='fancy_grid'))
-
-    except NameError as e:
-        print(e)
-
 
 def config_diff1(url1):
     for uri in root.findall("urls"):
@@ -123,18 +31,10 @@ def config_diff1(url1):
                 print(f"URL name ---------------------------------> {url}")
                 for childurl in child:
                     url_config1[childurl.tag]=childurl.text
-                    #print(childurl.tag, "==> ", childurl.text)
                     for chiildurl2 in childurl:
-                        url_config1_2[chiildurl2.tag] = chiildurl2.text
-                        #print("------------------->  ", chiildurl2.tag, chiildurl2.attrib, chiildurl2.text)
-                        #for chiildurl3 in chiildurl2:
-                            #print("------------------------------->", chiildurl3.tag, chiildurl3.text)
-                            #for chiildurl4 in chiildurl3:
-                                #print("------------------------------->", chiildurl4.tag, chiildurl4.text)
-            else:
-                #print("Not ok")
-                pass
-
+                        url_config1[chiildurl2.tag] = chiildurl2.text
+                        for chiildurl3 in chiildurl2:
+                            url_config1[chiildurl3.tag] = chiildurl3
 
 def config_diff2(url2):
     for uri in root.findall("urls"):
@@ -144,17 +44,86 @@ def config_diff2(url2):
                 print(f"URL name ---------------------------------> {url}")
                 for childurl in child:
                     url_config2[childurl.tag] = childurl.text
+                    for chiildurl2 in childurl:
+                        url_config2[chiildurl2.tag] = chiildurl2.text
+                        for chiildurl3 in chiildurl2:
+                            url_config2[chiildurl3.tag] = chiildurl3
 
-                    #print(childurl.tag, "=> ", childurl.text)
-                    #for chiildurl2 in childurl:
-                        #print("------->  ", chiildurl2.tag, chiildurl2.attrib, chiildurl2.text)
-                        #for chiildurl3 in chiildurl2:
-                            #print("----------------->  ", chiildurl3.tag, chiildurl3.attrib)
-                            #for chiildurl4 in chiildurl3:
-                                #print("--------------------------->  ", chiildurl4.tag, chiildurl4.attrib)
-            else:
-                #print("URL not found")
-                pass
+def find_similarities_url(lista):
+    try:
+        for i in lista:
+            for x in range(len(lista)):
+                if lista.index(i) != x:
+                    similitud = osa.similarity(i, lista[x])
+                    if i.startswith(lista[x]) and similitud > 0.20:
+                        #############################variables internas#################################
+                        lista_similitud = []
+                        lista_rec = []
+                        ################################################################################
+                        lista_rec.append(i)
+                        lista_rec.append(lista[x])
+                        similitud = str(similitud * 100)
+                        similitud = f"Porcentaje de similitud: {similitud}"
+                        lista_rec.append(similitud)
+                        lista_similitud.append(lista_rec)
+                        url1 = i
+                        url2 = lista[x]
+                        ################################obtener los diccionarios con la configuracion completa##########
+                        config_diff1(url1)
+                        config_diff2(url2)
+                        ################################################################################################
+                        comparar_diccionarios(url_config1,url_config2, lista_similitud)
+                        print(lista_similitud)
+                        print(tabulate(lista_similitud, headers=["URL1", "URL2", "porcentaje"], tablefmt='fancy_grid'))
+    except NameError as e:
+        print(e)
+
+def comparar_diccionarios(url_config1, url_config2, lista_similitud):
+    lista_diferencias_URL1 = [0, 1]
+    Not_configured="Not configured"
+    keys = url_config1.keys() | url_config2.keys()
+    print("Lista similitud==================================>", lista_similitud)
+    for key in keys:
+        try:
+            if url_config1[key] != url_config2[key]:
+                # al parecer durante la recursividad el diccionario aumenta su tamano, no borra previos registros
+                ########################comparacion de keys en diccionarios######################################
+                url1_comparison[key] = url_config1[key]
+                url2_comparison[key] = url_config2[key]
+                #################################################################################################
+                dir = {key: url1_comparison[key]}
+                dir2 = {key: url_config2[key]}
+                #################################################################################################
+                ##################################diccionarios a insertar########################################
+                lista_diferencias_URL1[0]=dir
+                lista_diferencias_URL1[1]=dir2
+                print("lista a insertar =============>", lista_diferencias_URL1)
+                lista_similitud.append(lista_diferencias_URL1)
+                #print("Lista similitud despues del apend1===> ", lista_similitud)
+        except:
+            if key not in url_config1:
+                print(f"valor no configurado en URL 1  {key}")
+                url1_comparison[key] = Not_configured
+                url2_comparison[key] = url_config2[key]
+                dir = {key:url1_comparison[key]}
+                dir2 = {key:url_config2[key]}
+                lista_diferencias_URL1[0] = dir
+                lista_diferencias_URL1[1] = dir2
+                print("lista a insertar =============>", lista_diferencias_URL1)
+                lista_similitud.append(lista_diferencias_URL1)
+                #print("Lista similitud despues del apend2===> ", lista_similitud)
+
+            if key not in url_config2:
+                print(f"valor no configurado en URL 2  {key}")
+                url2_comparison[key] = Not_configured
+                url1_comparison[key] = url_config1[key]
+                dir = {key: url1_comparison[key]}
+                dir2 = {key: url_config2[key]}
+                lista_diferencias_URL1[0] = dir
+                lista_diferencias_URL1[1] = dir2
+                print("lista a insertar =============>", lista_diferencias_URL1)
+                lista_similitud.append(lista_diferencias_URL1)
+                #print("Lista similitud despues del apend3===> ", lista_similitud)
 
 if __name__ == "__main__":
     try:
@@ -168,27 +137,17 @@ if __name__ == "__main__":
 
         if option == "1":
             get_uris(URLS)
-            #get_params(PARAM)
             lista = [i for i in URLS if i is not None]
-            lista2 = [i for i in PARAM if i is not None]
             find_similarities_url(lista)
-            #find_similarities_param()
 
 
         if option == "2":
-            url1 = input("URL 1 a comparar >> ")
-            url2 = input("URL 2 a comparar >> ")
-            config_diff1(url1)
-            #print(url_config1)
-            config_diff2(url2)
-            #print(url_config2)
-            comparar_diccionarios(url_config1, url_config2)
+            pass
 
         if option == "3":
             print("ok")
-            #break
         else:
-            print("please choose bettween the following options 1, 2, or 3")
+            print("Done")
 
     except NameError as e:
         print(e)
