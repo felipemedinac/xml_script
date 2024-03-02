@@ -1,0 +1,120 @@
+import json
+import requests
+from hermetrics.osa import Osa
+from tabulate import tabulate
+
+URL="https://api.sjc1.defense.net/api/wipes/v2/policies/"
+osa = Osa()
+urls_list = []
+urls_config_list = []
+lst_conf = []
+dict1={}
+dict2={}
+
+
+def compare_dictionaries(dict1, dict2, lst_similarity):
+    NA="Not configured"
+    #del dict1['@attr:name']
+    #del dict2['@attr:name']
+    keys = dict1.keys() | dict2.keys()
+    for key in keys:
+        lst_rec=[]
+        try:
+            if dict1[key] != dict2[key] or dict2[key] != dict1[key]:
+                lst_rec.clear()
+                val_url1=f"{key}:{dict1[key]}"
+                val_url2=f"{key}:{dict2[key]}"
+                lst_rec.append(val_url1)
+                lst_rec.append(val_url2)
+                lst_similarity.append(lst_rec)
+        except KeyError:
+            if key not in dict1:
+                lst_rec.clear()
+                val_url2 = f"{key}:{NA}"
+                val_url1 = f"{key}:{dict2[key]}"
+                lst_rec.append(val_url1)
+                lst_rec.append(val_url2)
+                lst_similarity.append(lst_rec)
+            if key not in dict2:
+                lst_rec.clear()
+                val_url2 = f"{key}:{NA}"
+                val_url1 = f"{key}:{dict2[key]}"
+                lst_rec.append(val_url1)
+                lst_rec.append(val_url2)
+                lst_similarity.append(lst_rec)
+
+    return lst_similarity
+
+def get_config_URL1(urls_config_list, url1):
+    dict1={}
+    for x in urls_config_list:
+        if url1 == x['@attr:name']:
+            dict1 = x
+    return dict1
+
+
+def get_config_URL2(urls_config_list, url2):
+    dict2={}
+    for x in urls_config_list:
+        if url2 == x['@attr:name']:
+            dict2 = x
+    return dict2
+
+
+def find_duplicated_uris():
+    with open(f"Policy_{UID}.json", "r") as archivo_json:
+        datos_json = json.load(archivo_json)#elementos del Json en forma de diccionario
+        config = datos_json["policy"]
+        urls_config = config["urls"]
+        url = urls_config["url"]
+    for i in url:
+        #obtener los diccionarios completos para cada URI
+        urls_list.append(i['@attr:name'])
+        urls_config_list.append(i)
+
+def find_similarity(urls_list):
+    try:
+        for i in urls_list:
+            for x in range(len(urls_list)):
+                if urls_list.index(i) != x:
+                    similarity = osa.similarity(i, urls_list[x])
+                    if i.startswith(urls_list[x]) and similarity > 0.05:
+                        similarity=similarity*100
+                        url1=i
+                        url2=urls_list[x]
+                        print("verificando " , url1, "    ", url2)
+                        lst_similarity = []
+                        lst_recursive = []
+                        lst_recursive.append(url1)
+                        lst_recursive.append(url2)
+                        lst_similarity.append(lst_recursive)
+                        dict1 = get_config_URL1(urls_config_list, url1)
+                        dict2 = get_config_URL2(urls_config_list, url2)
+                        compare_dictionaries(dict1, dict2, lst_similarity)
+                        print(f"Similarity =========================> {similarity}")
+                        print(tabulate(lst_similarity, headers=[f"URL1: {url1}", f"URL2: {url2}"], tablefmt='fancy_grid'))
+    except NameError as e:
+        print(e)
+
+
+if __name__ == "__main__":
+    try:
+        print("068340a7-1473-4e25-bd2d-cc42d7b90f5e")
+        UID = input("Please introduce the policy UID >> ")
+        wipes = "https://api.sjc1.defense.net/api/wipes/v2/policies/" + UID
+        response = requests.get(wipes, verify=False, timeout=10)
+        data = response.json()
+        with open(f"Policy_{UID}.json", "w") as file:
+            json.dump(data, file, indent=4)
+
+        print("""
+        1.- Find duplicated URLs
+        2.- Find duplicated Parameters
+        3.- Exit
+        """)
+        option = input("OPTION >> ")
+        if option == "1":
+            find_duplicated_uris()
+            find_similarity(urls_list)
+    except NameError as e:
+        print(e)
