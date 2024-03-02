@@ -1,7 +1,9 @@
 import json
+import requests
 from hermetrics.osa import Osa
 from tabulate import tabulate
 
+URL="https://api.sjc1.defense.net/api/wipes/v2/policies/"
 osa = Osa()
 urls_list = []
 urls_config_list = []
@@ -60,12 +62,13 @@ def get_config_URL2(urls_config_list, url2):
 
 
 def find_duplicated_uris():
-    with open("test1.json", "r") as archivo_json:
+    with open(f"Policy_{UID}.json", "r") as archivo_json:
         datos_json = json.load(archivo_json)#elementos del Json en forma de diccionario
         config = datos_json["policy"]
         urls_config = config["urls"]
         url = urls_config["url"]
-    for i in url:                       #obtener los diccionarios completos para cada URI
+    for i in url:
+        #obtener los diccionarios completos para cada URI
         urls_list.append(i['@attr:name'])
         urls_config_list.append(i)
 
@@ -96,6 +99,14 @@ def find_similarity(urls_list):
 
 if __name__ == "__main__":
     try:
+        print("068340a7-1473-4e25-bd2d-cc42d7b90f5e")
+        UID = input("Please introduce the policy UID >> ")
+        wipes = "https://api.sjc1.defense.net/api/wipes/v2/policies/" + UID
+        response = requests.get(wipes, verify=False, timeout=10)
+        data = response.json()
+        with open(f"Policy_{UID}.json", "w") as file:
+            json.dump(data, file, indent=4)
+
         print("""
         1.- Find duplicated URLs
         2.- Find duplicated Parameters
